@@ -1,0 +1,268 @@
+C51 COMPILER V9.60.7.0   LDC1000                                                           06/02/2023 12:14:25 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE LDC1000
+OBJECT MODULE PLACED IN ldc1000.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE LDC1000\ldc1000.c LARGE ROM(SMALL) RTX51 OPTIMIZE(8,SPEED) BROWSE INCDIR
+                    -(.\LDC1000) DEBUG OBJECTEXTEND PRINT(.\ldc1000.lst) TABS(2) OBJECT(ldc1000.obj)
+
+line level    source
+
+   1          #include"ldc1000.h"
+   2          int LDC_val=0;
+   3          unsigned char orgVal[12]={0};
+   4          //unsigned char RPMAX =0x07; 
+   5          //unsigned char RPMIN =0x2f;
+   6          //unsigned char RFREQ =0xA9;
+   7          
+   8          unsigned char RPMAX =0x0C; //
+   9          unsigned char RPMIN =0x33; //
+  10          unsigned char RFREQ =0xB8;//
+  11          unsigned char rpi_max=3;
+  12          unsigned char proximtyData[2]={0};
+  13          unsigned long proximtyDataTEMP=0,proximtyDataMAX,proximtyDataMIN,proximtyDataSUM,proximtyDataAVE,proximtyD
+             -ataAVE_LAS;
+  14          void delayms(unsigned int ms)
+  15          {
+  16   1        unsigned char i=100,j;
+  17   1        for(;ms;ms--)
+  18   1        {
+  19   2          while(--i)
+  20   2          {
+  21   3            j=10;
+  22   3            while(--j);
+  23   3          }
+  24   2        }
+  25   1      }
+  26          void delay10us(unsigned int i)
+  27          {
+  28   1        while(i--); 
+  29   1      }
+  30          void FLOAT_LDC_init()
+  31          {
+  32   1            while(orgVal[1]!=RPMAX||orgVal[2]!=RPMIN||orgVal[3]!=RFREQ)//
+  33   1            {  
+  34   2               FLOAT_SPI_init();   
+  35   2               delayms(30);
+  36   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_RPMAX, RPMAX);//
+  37   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_RPMIN, RPMIN);//
+  38   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_SENSORFREQ,  RFREQ);  //Sensor Frequency  N = 68.94 * log10(F/
+             -2000);F=935 kHz ,N=184
+  39   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_LDCCONFIG,   0x17);  // 设定振荡幅度4V,响应时间3072
+  40   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_CLKCONFIG,   0x00);  //使用外部时基时钟，并启用
+  41   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_THRESHILSB,  0x50); // 
+  42   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_THRESHIMSB,  0x14);//
+  43   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_THRESLOLSB,  0xC0);//
+  44   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_THRESLOMSB,  0x12);//
+  45   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_INTCONFIG,   0x02);  //INTB引脚表示比较器输出的状态
+  46   2               FLOAT_Singal_SPI_Write(LDC1000_CMD_PWRCONFIG,   0x01);// 活动模式。启用转换
+  47   2               FLOAT_SPI_Read_Buf(LDC1000_CMD_REVID,&orgVal[0],12);//orgVal[]
+  48   2             
+  49   2            }
+  50   1      } 
+  51          
+  52          int ldc_read()//LDC1000 数据读取
+C51 COMPILER V9.60.7.0   LDC1000                                                           06/02/2023 12:14:25 PAGE 2   
+
+  53          {
+  54   1            FLOAT_SPI_Read_Buf(0x20,&proximtyData[0],1);
+  55   1      //       FLOAT_SPI_Read_Buf(LDC1000_CMD_REVID,&proximtyData[0],1);
+  56   1            proximtyDataTEMP = proximtyData [0]; 
+  57   1            
+  58   1          return   proximtyDataTEMP; 
+  59   1      
+  60   1      }
+  61          int ldc_read_avr()//均值滤波
+  62          {
+  63   1      
+  64   1          char rpi=0;  //
+  65   1          for (rpi=0;rpi<rpi_max;rpi++)
+  66   1          {
+  67   2      
+  68   2            FLOAT_SPI_Read_Buf(LDC1000_CMD_PROXLSB,&proximtyData[0],2);  
+  69   2            proximtyDataTEMP = ((unsigned char)proximtyData[1]<<8) + proximtyData [0]; 
+  70   2            proximtyDataSUM += proximtyDataTEMP;
+  71   2            if (proximtyDataTEMP < proximtyDataMIN)   //?100?proximtyDataTEMP????,??
+  72   2              proximtyDataMIN = proximtyDataTEMP;
+  73   2            if (proximtyDataTEMP > proximtyDataMAX)
+  74   2              proximtyDataMAX = proximtyDataTEMP;
+  75   2          }
+  76   1           proximtyDataAVE = proximtyDataSUM /rpi_max;
+  77   1           proximtyDataSUM=0;
+  78   1           proximtyDataAVE_LAS=proximtyDataAVE;
+  79   1        
+  80   1          return   proximtyDataAVE; 
+  81   1      
+  82   1      }
+  83          long int filter()//窗口滤波
+  84          {
+  85   1         char count,i,j,count1;
+  86   1         char count2=0;
+  87   1       
+  88   1         long int temp;
+  89   1         long int sum=0;
+  90   1         for(count=0;count<NN;count++)
+  91   1         {
+  92   2            value_buf[count] = ldc_read_avr();
+  93   2         }
+  94   1         
+  95   1         for(count1=0;count1<NN;count1++)
+  96   1         {  
+  97   2         if(value_buf[count1]<32768)
+  98   2         {
+  99   3         new_value_buf[count2]=value_buf[count1];
+ 100   3         count2++;
+ 101   3         }  
+ 102   2         }
+ 103   1         
+ 104   1         
+ 105   1         for (j=0;j<count2-1;j++)
+ 106   1         {
+ 107   2            for (i=0;i<count2-j;i++)
+ 108   2            {
+ 109   3              if ( new_value_buf[i]>new_value_buf[i+1] )
+ 110   3               {
+ 111   4                  temp = new_value_buf[i];
+ 112   4                  new_value_buf[i] = new_value_buf[i+1];
+ 113   4                  new_value_buf[i+1] = temp;
+ 114   4               }
+C51 COMPILER V9.60.7.0   LDC1000                                                           06/02/2023 12:14:25 PAGE 3   
+
+ 115   3            }
+ 116   2         }
+ 117   1      
+ 118   1         for(count=1;count<count2-1;count++)
+ 119   1         {
+ 120   2            sum += new_value_buf[count];
+ 121   2         }
+ 122   1        
+ 123   1           
+ 124   1         return (long int)(sum/(count2-2));
+ 125   1      
+ 126   1      
+ 127   1      }
+ 128          
+ 129          void FLOAT_SPI_init()
+ 130          {  
+ 131   1      
+ 132   1      
+ 133   1               MISO=1;
+ 134   1               CSN=1;
+ 135   1               SCK=0;
+ 136   1               MOSI=1;
+ 137   1               
+ 138   1        
+ 139   1      }
+ 140          
+ 141          unsigned char FLOAT_SPI_RW(unsigned char rwdata)
+ 142          {  
+ 143   1          
+ 144   1        unsigned char spi_rw_i=0; 
+ 145   1              unsigned char temp=0;
+ 146   1              for(spi_rw_i=0;spi_rw_i<8;spi_rw_i++)     // output 8-bit
+ 147   1          {
+ 148   2                  /*** prepare the write data of read before the coming of rising up******/
+ 149   2                  if(rwdata & 0x80)
+ 150   2                          MOSI=1;
+ 151   2              else 
+ 152   2                          MOSI=0;
+ 153   2              rwdata<<=1;               // shift next bit to MSB
+ 154   2                        temp<<=1;
+ 155   2          SCK=1;             //Set SCK high    Rising up 
+ 156   2                     
+ 157   2            if(MISO) 
+ 158   2                        temp|=1;
+ 159   2            SCK=0;            //set  SCK low     Falling down
+ 160   2                      
+ 161   2          }
+ 162   1          return(temp);                     // return read byte
+ 163   1          
+ 164   1       
+ 165   1      }
+ 166          
+ 167          unsigned char FLOAT_Singal_SPI_Read(unsigned char reg)
+ 168          {
+ 169   1        unsigned char rdata;
+ 170   1        
+ 171   1        CSN=0;                        // CSN low, initialize SPI communication...
+ 172   1             
+ 173   1              delay10us(1);
+ 174   1               
+ 175   1               reg=reg|0x80;         //read com
+ 176   1        FLOAT_SPI_RW(reg);            // Select register to read from..
+C51 COMPILER V9.60.7.0   LDC1000                                                           06/02/2023 12:14:25 PAGE 4   
+
+ 177   1      _nop_();
+ 178   1      _nop_();
+ 179   1      _nop_();
+ 180   1      _nop_();
+ 181   1      _nop_();
+ 182   1      _nop_();
+ 183   1      _nop_();
+ 184   1      _nop_();
+ 185   1      _nop_();
+ 186   1      _nop_();
+ 187   1             
+ 188   1        rdata = FLOAT_SPI_RW(0);    // then read registervalue
+ 189   1        delay10us(170);
+ 190   1        CSN=1;                 // CSN high, terminate SPI communication
+ 191   1        
+ 192   1        return rdata;         // return register value
+ 193   1      }
+ 194          
+ 195          void FLOAT_Singal_SPI_Write(unsigned char reg,unsigned char wdata)
+ 196          {
+ 197   1        
+ 198   1        CSN=0;                // CSN low, initialize SPI communication...
+ 199   1        delay10us(1);//2us
+ 200   1        reg=reg&~0x80;
+ 201   1        FLOAT_SPI_RW(reg);            // Select register to read from..
+ 202   1             
+ 203   1      _nop_();
+ 204   1      _nop_();
+ 205   1      _nop_();
+ 206   1      _nop_();
+ 207   1      _nop_();
+ 208   1      _nop_();
+ 209   1      _nop_();
+ 210   1      _nop_();
+ 211   1      _nop_();        
+ 212   1        FLOAT_SPI_RW(wdata);    // ..then read registervalue
+ 213   1              delay10us(170);//875us
+ 214   1        CSN=1;              // CSN high, terminate SPI communication
+ 215   1             
+ 216   1        
+ 217   1      }
+ 218          void FLOAT_SPI_Read_Buf(unsigned char reg, unsigned char *pBuf, unsigned char len)
+ 219          {
+ 220   1        unsigned char spi_rw_i;
+ 221   1        
+ 222   1        CSN=0;                      // Set CSN low, init SPI tranaction
+ 223   1             
+ 224   1              reg=reg|0x80;                            //read
+ 225   1        FLOAT_SPI_RW(reg);          // Select register to write to and read status unsigned char
+ 226   1        
+ 227   1        for(spi_rw_i=0;spi_rw_i<len;spi_rw_i++)
+ 228   1              {  
+ 229   2        pBuf[spi_rw_i] = FLOAT_SPI_RW(0);    
+ 230   2         }
+ 231   1        CSN=1;     
+ 232   1             
+ 233   1      
+ 234   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1473    ----
+C51 COMPILER V9.60.7.0   LDC1000                                                           06/02/2023 12:14:25 PAGE 5   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     68      19
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

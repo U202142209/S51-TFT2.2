@@ -1,0 +1,146 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              06/03/2023 14:37:41 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(.\LDC1000) DEBUG OBJECTEXTE
+                    -ND TABS(2)
+
+line level    source
+
+   1          #include <reg51.h>
+   2          #include <intrins.h>
+   3          #include <sys\sys.h>
+   4          #include <lcd\lcd.h>
+   5          #include <font\font.h>
+   6          
+   7          // #include"ldc1000.h"
+   8          
+   9          /*
+  10          程序默认IO连接方式：
+  11          sbit LCD_CS     =P0^0;     //片选
+  12          sbit LCD_DC     =P0^2;    //数据/命令切换
+  13          sbit LCD_SDI    =P1^3;    //数据
+  14          sbit LCD_SCK    =P1^5;    //时钟
+  15          sbit LCD_REST   =P0^1;    //复位
+  16          sd0 P1^4
+  17          */
+  18          void xianshi()//显示信息
+  19          {
+  20   1          BACK_COLOR = WHITE;
+  21   1          POINT_COLOR = BLACK;
+  22   1          showhanzi(10, 10, 0); //晶
+  23   1          showhanzi(45, 10, 1); //耀
+  24   1      
+  25   1          LCD_ShowString(10, 50, "2.2 inch TFT 240*320");
+  26   1          LCD_ShowString(10, 80, "Zhao Wei Jia");
+  27   1      
+  28   1          LCD_ShowNum(10, 110, 12345, 1);
+  29   1          LCD_ShowString(10, 150, "Zhao Wei Jia");
+  30   1          LCD_ShowString(10, 180, "Zhao Wei Jia");
+  31   1      }
+  32          
+  33          
+  34          void mytest()
+  35          {
+  36   1          LCD_Clear(WHITE); //清屏
+  37   1          BACK_COLOR = BLACK;;
+  38   1          POINT_COLOR = WHITE;
+  39   1          while(1)
+  40   1          {
+  41   2              xianshi(); //显示信息
+  42   2              delayms(2000);
+  43   2          }
+  44   1      }
+  45          
+  46          
+  47          int i, j, m;
+  48          u8* p;
+  49          void iKunMain()
+  50          {
+  51   1          LCD_Clear(WHITE); //清屏
+  52   1          BACK_COLOR = BLACK;;
+  53   1          POINT_COLOR = WHITE;
+  54   1          while(1)
+C51 COMPILER V9.60.7.0   MAIN                                                              06/03/2023 14:37:41 PAGE 2   
+
+  55   1          {
+  56   2              BACK_COLOR = WHITE;
+  57   2              POINT_COLOR = BLACK;
+  58   2      
+  59   2              for(i = 0; i < 28; i++)
+  60   2              {
+  61   3                  p = "* * * * * * * * * * * * * *";
+  62   3                  LCD_ShowString(10, 20 + 10 * i, p);
+  63   3              }
+  64   2      
+  65   2              LCD_ShowString(10, 60, "* * * **********");
+  66   2              LCD_ShowString(10, 70, " * * * * * * * *");
+  67   2      
+  68   2              delayms(2000);
+  69   2          }
+  70   1      }
+  71          
+  72          
+  73          void showimage() //显示40*40图片
+  74          {
+  75   1          int i, j, k;
+  76   1          int size = 160;
+  77   1          int smallsize = 40;
+  78   1          int x = 40;
+  79   1          int y = 40;
+  80   1          for(k = 0; k < 1; k++)
+  81   1          {
+  82   2              for(j = 0; j < 1; j++)
+  83   2              {
+  84   3                  Address_set(x, y, x + size - 1, x + size - 1);    //坐标设置
+  85   3                  for(i = 0; i < 51208 / 2; i++)
+  86   3                  {
+  87   4                      // LCD_WR_DATA8(image[i * 2 + 1]);   //发送颜色数据
+  88   4                      // LCD_WR_DATA8(image[i * 2]);
+  89   4                      LCD_WR_DATA8(imageikun[i * 2 + 1]);   //发送颜色数据
+  90   4                      LCD_WR_DATA8(imageikun[i * 2]);
+  91   4                  }
+  92   3      
+  93   3                  Address_set(0, 0, 0 + smallsize - 1, 0 + smallsize - 1);    //坐标设置
+  94   3                  for(i = 0; i < 1600; i++)
+  95   3                  {
+  96   4                      LCD_WR_DATA8(image[i * 2 + 1]);  //发送颜色数据
+  97   4                      LCD_WR_DATA8(image[i * 2]);
+  98   4                      // LCD_WR_DATA8(gImage_1[i * 2 + 1]);  //发送颜色数据
+  99   4                      // LCD_WR_DATA8(gImage_1[i * 2]);             
+ 100   4                  }
+ 101   3              }
+ 102   2          }
+ 103   1      }
+ 104          
+ 105          int main()
+ 106          {
+ 107   1          Lcd_Init();   //tft初始化
+ 108   1          // iKunMain();
+ 109   1          LCD_Clear(WHITE); //清屏
+ 110   1          while(1)
+ 111   1          {
+ 112   2              showimage();
+ 113   2          }
+ 114   1          return 0;
+ 115   1      }
+ 116          
+C51 COMPILER V9.60.7.0   MAIN                                                              06/03/2023 14:37:41 PAGE 3   
+
+ 117          
+*** WARNING C294 IN LINE 114 OF main.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    760    ----
+   CONSTANT SIZE    =     96    ----
+   XDATA SIZE       =      9      14
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
